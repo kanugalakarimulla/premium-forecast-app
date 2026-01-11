@@ -157,14 +157,22 @@ if 'chat_open' not in st.session_state:
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour, but will refresh if CSV files change
 def load_data():
-    """Load data from CSV files"""
+    """Load data from CSV files, auto-generating if missing"""
     try:
         # Define data directory
         data_dir = 'data'
         
-        # Check if data directory exists
-        if not os.path.exists(data_dir):
-            raise FileNotFoundError(f"Data directory '{data_dir}' not found. Please run 'python create_data_csvs.py' first.")
+        # Check if data directory exists or CSV files are missing
+        csv_files = ['mortality_data.csv', 'economic_data.csv', 'base_premiums.csv', 'demographic_distribution.csv']
+        data_missing = not os.path.exists(data_dir) or any(
+            not os.path.exists(os.path.join(data_dir, f)) for f in csv_files
+        )
+        
+        # Auto-generate data if missing (for Streamlit Cloud deployment)
+        if data_missing:
+            with st.spinner("Generating data files (first time setup)..."):
+                from create_data_csvs import generate_data
+                generate_data(data_dir)
         
         # Load CSV files
         mortality_df = pd.read_csv(os.path.join(data_dir, 'mortality_data.csv'))
